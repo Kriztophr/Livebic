@@ -1,0 +1,12 @@
+{
+  "name": "livebic",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev:api": "npm run dev -w @livebic/api",
+    "dev:web": "npm run dev -w @livebic/web",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}
