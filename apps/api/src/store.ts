@@ -18,6 +18,10 @@ export interface User {
   walletId: string;
   walletAddress: string;
   artistId: string | null;
+  /** Lowercase login name carried over from the legacy app. */
+  username?: string;
+  /** bcrypt hash carried over from the legacy app so migrated users keep their password. */
+  passwordHash?: string | null;
 }
 
 export type VerificationStatus = "unverified" | "pending" | "verified" | "rejected";
@@ -51,6 +55,9 @@ export interface Release {
   splits: SplitShare[];
   edition: { size: number; priceKobo: number; sold: number } | null;
   audio: { objectKey: string; contentType: string; sha256: string; registryTx: string; bytes: number } | null;
+  cover?: { objectKey: string; contentType: string } | null;
+  /** Legacy track id, so old /track/<id> links keep working. */
+  legacyAudioId?: string;
   status: "draft" | "published" | "removed";
   rightsWarrantedAt: Date;
   createdAt: Date;
@@ -76,6 +83,8 @@ export interface Order {
   editionNumber: number | null;
   receipt: (SignedReceipt & { registryTx: string }) | null;
   membershipEndsAt: Date | null;
+  /** Set on purchases imported from the legacy app; already settled there, so never credited to the ledger. */
+  legacy?: { source: "deepsound"; currency: string; amount: number };
 }
 
 export interface LedgerEntry {
@@ -128,6 +137,17 @@ export class MemoryStore {
   reports = new Map<string, Report>();
   flags: (ReviewFlag & { id: string; raisedAt: Date; status: "open" | "cleared" })[] = [];
   idempotency = new Map<string, IdempotencyRecord>();
+
+  userByLogin(identifier: string): User | undefined {
+    const id = identifier.trim().toLowerCase();
+    for (const u of this.users.values()) if (u.email === id || u.username === id) return u;
+    return undefined;
+  }
+
+  releaseByLegacyAudioId(audioId: string): Release | undefined {
+    for (const r of this.releases.values()) if (r.legacyAudioId === audioId) return r;
+    return undefined;
+  }
 
   userByEmail(email: string): User | undefined {
     const e = email.toLowerCase();

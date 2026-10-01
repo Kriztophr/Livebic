@@ -26,8 +26,9 @@ export function FeedCard({ release, why, feed, rank }: { release: ReleaseView; w
 
   return (
     <article className="card">
-      <div className="row">
+      <div className="row" id={release.id}>
         {rank !== undefined && <span className="muted">#{rank}</span>}
+        {release.coverUrl && <img src={release.coverUrl} alt="" width={48} height={48} className="cover" loading="lazy" />}
         <div className="grow">
           <strong>{release.title}</strong>
           {release.artist && (

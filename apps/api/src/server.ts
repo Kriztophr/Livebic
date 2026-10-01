@@ -4,6 +4,8 @@ import { buildApp } from "./app";
 import { runRankingJob } from "./jobs/ranking";
 import { sandboxPartners } from "./partners/sandbox";
 import { seed } from "./seed";
+import { loadBundle, readBundle } from "./migrate/bundle";
+import { join } from "node:path";
 import { MemoryStore } from "./store";
 
 const config = loadConfig();
@@ -16,7 +18,13 @@ const ctx = createContext({
   store: new MemoryStore(),
   partners: sandboxPartners({ publicApiUrl: config.publicApiUrl, webhookSecret: config.processorWebhookSecret }),
 });
-if (process.env.SEED !== "false") await seed(ctx);
+const bundleDir = process.env.LIVEBIC_IMPORT_BUNDLE;
+if (bundleDir) {
+  const loaded = await loadBundle(ctx, await readBundle(bundleDir), join(bundleDir, "media"));
+  console.log("Loaded legacy import:", loaded);
+} else if (process.env.SEED !== "false") {
+  await seed(ctx);
+}
 await runRankingJob(ctx);
 setInterval(() => void runRankingJob(ctx).catch((e) => console.error("ranking job failed", e)), config.rankingIntervalMs).unref();
 

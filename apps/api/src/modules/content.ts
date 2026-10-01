@@ -10,6 +10,8 @@ import type { Release, User } from "../store";
 const AUDIO_TYPES = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/wave"];
 const MAX_AUDIO_BYTES = 100 * 1024 * 1024;
 const SIGNED_URL_TTL_S = 15 * 60;
+const COVER_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_COVER_BYTES = 5 * 1024 * 1024;
 
 const releaseSchema = z.object({
   title: z.string().min(1).max(120),
@@ -66,6 +68,7 @@ export function releaseView(ctx: AppContext, r: Release, viewer: User | null) {
     edition: r.edition ? { size: r.edition.size, remaining: r.edition.size - r.edition.sold, priceKobo: r.edition.priceKobo } : null,
     status: r.status,
     publishedAt: r.publishedAt,
+    coverUrl: r.cover ? `${ctx.config.publicApiUrl}/covers/${r.cover.objectKey.replace(/^cover\//, "").split("/").map(encodeURIComponent).join("/")}` : null,
     artist: artist ? { id: artist.id, handle: artist.handle, displayName: artist.displayName } : null,
     // Proof of authorship: the fingerprint and its registry record, shown as "Authorship record".
     authorship: r.audio ? { sha256: r.audio.sha256, registryRef: r.audio.registryTx } : null,
@@ -143,6 +146,37 @@ export async function registerContent(app: FastifyInstance, ctx: AppContext) {
       // Transcoding to streaming renditions runs as a pipeline job in production.
       return { sha256: fingerprint, registryRef: txRef, bytes: body.length };
     });
+  });
+
+  app.register(async (scope) => {
+    scope.addContentTypeParser(COVER_TYPES, { parseAs: "buffer", bodyLimit: MAX_COVER_BYTES }, (_req, body, done) => done(null, body));
+    scope.put<{ Params: { id: string } }>("/v1/releases/:id/cover", { bodyLimit: MAX_COVER_BYTES }, async (req) => {
+      const user = requireUser(ctx, req, "artist");
+      const release = ownRelease(ctx, user, req.params.id);
+      const body = req.body as Buffer;
+      if (!Buffer.isBuffer(body) || body.length === 0) throw badRequest("empty_upload", "Upload a JPEG, PNG or WebP image");
+      const contentType = String(req.headers["content-type"]).split(";")[0]!;
+      const objectKey = `cover/${release.id}/${sha256Hex(body)}`;
+      await ctx.partners.storage.put(objectKey, body, contentType);
+      release.cover = { objectKey, contentType };
+      return releaseView(ctx, release, user);
+    });
+  });
+
+  // Cover art is public (shown on feeds and share cards), so it needs no signed link.
+  app.get<{ Params: { "*": string } }>("/covers/*", async (req, reply) => {
+    const key = `cover/${decodeURIComponent(req.params["*"])}`;
+    const obj = await ctx.partners.storage.get(key);
+    if (!obj) throw notFound("Image");
+    return reply.header("content-type", obj.contentType).header("cache-control", "public, max-age=31536000, immutable").send(obj.body);
+  });
+
+  // Old track links (livebic.com/track/<audio_id>) resolve to the new release.
+  app.get<{ Params: { audioId: string } }>("/v1/legacy/tracks/:audioId", async (req) => {
+    const r = store.releaseByLegacyAudioId(req.params.audioId);
+    const artist = r ? store.artists.get(r.artistId) : undefined;
+    if (!r || !artist || r.status !== "published") throw notFound("Track");
+    return { releaseId: r.id, handle: artist.handle };
   });
 
   app.post<{ Params: { id: string } }>("/v1/releases/:id/publish", async (req) => {

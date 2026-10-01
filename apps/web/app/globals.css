@@ -57,3 +57,4 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .notice { color: var(--warn); font-size: 0.85rem; }
 audio { width: 100%; margin-top: 8px; }
 .table-wrap { overflow-x: auto; }
+.cover { border-radius: 8px; object-fit: cover; background: var(--line); flex: none; }

@@ -22,7 +22,7 @@ export function FeedView() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(FEED_KEY) as FeedId | null;
+      const saved = (new URLSearchParams(window.location.search).get("feed") ?? localStorage.getItem(FEED_KEY)) as FeedId | null;
       if (saved && FEEDS.some((f) => f.id === saved)) setFeed(saved);
     } catch {}
   }, []);

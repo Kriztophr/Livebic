@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import bcrypt from "bcryptjs";
 import type { FastifyInstance } from "fastify";
 import { TIP_AMOUNTS_KOBO } from "@livebic/core";
 import { z } from "zod";
@@ -98,15 +99,50 @@ export async function registerIdentity(app: FastifyInstance, ctx: AppContext) {
     return reply.code(201).send({ token: issueSession(ctx, user.id), user: publicUser(user) });
   });
 
+  // Throttle password guesses per account (the legacy app kept a bad_login table for the same reason).
+  const failures = new Map<string, { count: number; since: number }>();
+  const MAX_FAILURES = 5;
+  const WINDOW_MS = 15 * 60 * 1000;
+
   app.post("/v1/auth/login", async (req) => {
-    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+    const body = z
+      .object({ email: z.string().min(2).max(120).optional(), login: z.string().min(2).max(120).optional(), password: z.string().max(200).optional() })
+      .refine((b) => b.email ?? b.login, "Enter your email or username")
+      .parse(req.body);
+    const identifier = (body.login ?? body.email)!.trim().toLowerCase();
+    const user = store.userByLogin(identifier);
+
+    if (user?.passwordHash) {
+      // Accounts carried over from the old app keep their password.
+      const now = ctx.now().getTime();
+      const f = failures.get(user.id);
+      if (f && now - f.since < WINDOW_MS && f.count >= MAX_FAILURES) {
+        throw new HttpError(429, "too_many_attempts", "Too many attempts. Try again in 15 minutes.");
+      }
+      if (!body.password || !(await bcrypt.compare(body.password, user.passwordHash))) {
+        const fresh = !f || now - f.since >= WINDOW_MS;
+        failures.set(user.id, { count: fresh ? 1 : f.count + 1, since: fresh ? now : f.since });
+        throw new HttpError(401, "invalid_login", "Wrong email, username or password");
+      }
+      failures.delete(user.id);
+      return { token: issueSession(ctx, user.id), user: publicUser(user) };
+    }
+
     if (!ctx.config.sandbox) {
-      // Production sign-in is a passkey (WebAuthn) or an emailed one-time link.
+      // Production sign-in for new accounts is a passkey (WebAuthn) or an emailed one-time link.
+      if (!user) throw new HttpError(401, "invalid_login", "Wrong email, username or password");
       throw new HttpError(501, "not_implemented", "Passkey and email-link sign-in are not wired yet");
     }
-    const user = store.userByEmail(email);
     if (!user) throw notFound("Account");
     return { token: issueSession(ctx, user.id), user: publicUser(user) };
+  });
+
+  // Old links (livebic.com/<username>) resolve to the new artist page.
+  app.get<{ Params: { username: string } }>("/v1/legacy/users/:username", async (req) => {
+    const user = store.userByLogin(req.params.username);
+    const artist = user?.artistId ? store.artists.get(user.artistId) : store.artistByHandle(req.params.username);
+    if (!artist) throw notFound("Artist");
+    return { handle: artist.handle };
   });
 
   app.get("/v1/me", async (req) => {

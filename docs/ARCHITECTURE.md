@@ -45,6 +45,7 @@ apps/web (Next.js PWA) ──► apps/api (Fastify)
 | Scores refreshed every 15 min | `jobs/ranking.ts` | Interval in `server.ts`; admins can force a recompute |
 | Supporter CSV export, regardless of platform status | `modules/supporters.ts` | Formula-injection safe |
 | No crypto vocabulary for fans | `core/copy.ts` | Tests scan fan-facing screens, emails and the rules text |
+| Cover art | `PUT /v1/releases/:id/cover`, `GET /covers/*` | Public, immutable URLs |
 | PWA: add-to-home-screen, offline shell | `apps/web/public` | Push notifications not wired yet |
 
 ## Sandbox vs real
@@ -52,6 +53,13 @@ apps/web (Next.js PWA) ──► apps/api (Fastify)
 Everything behind `apps/api/src/partners/types.ts` is a mock today (`partners/sandbox.ts`), and data
 lives in memory (`store.ts`). `server.ts` refuses to start with `LIVEBIC_SANDBOX=false` until the real
 partners are wired. That is on purpose: the partner and chain choices are open decisions in the spec.
+
+## Legacy import
+
+`apps/api/src/migrate` imports the DeepSound MySQL database once (`migrate:deepsound`) into a bundle the API
+loads at startup (`LIVEBIC_IMPORT_BUNDLE`). Migrated users sign in with their old username or email and password.
+Old `/track/<id>` and `/<username>` links redirect to the new pages. Legacy balances are reported for settlement,
+not imported. Runbook: [MIGRATION.md](MIGRATION.md).
 
 ## Still to do before launch
 
@@ -62,7 +70,7 @@ Blocked on the spec's open decisions:
 - **Counsel sign-off** on the partner-custody model before real money flows.
 
 Engineering work, not blocked:
-- Postgres-backed store implementing the same shapes as `MemoryStore` (schema in `db/schema.sql`, validated against Postgres 16), plus migrations.
+- Postgres-backed store (also the target for the legacy import) implementing the same shapes as `MemoryStore` (schema in `db/schema.sql`, validated against Postgres 16), plus migrations.
 - Passkey (WebAuthn) and email-link sign-in. Sandbox sign-in by email alone is for local use only.
 - Redis `FeedCache` and a Kafka-compatible event stream in place of the in-memory versions.
 - Object storage + CDN in place of in-memory storage; audio transcoding pipeline.

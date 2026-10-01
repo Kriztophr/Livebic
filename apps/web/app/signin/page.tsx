@@ -6,12 +6,14 @@ import { api, setToken } from "../../lib/api";
 
 function SignIn() {
   const router = useRouter();
-  const next = useSearchParams().get("next") ?? "/";
-  const [mode, setMode] = useState<"signup" | "signin">("signup");
+  const params = useSearchParams();
+  const next = params.get("next") ?? "/";
+  const [mode, setMode] = useState<"signup" | "signin">(params.get("mode") === "signin" ? "signin" : "signup");
   const [role, setRole] = useState<"fan" | "artist">("fan");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
@@ -21,7 +23,7 @@ function SignIn() {
       const res =
         mode === "signup"
           ? await api<{ token: string }>("/v1/auth/signup", { method: "POST", json: { email, name, role, handle: role === "artist" ? handle : undefined } })
-          : await api<{ token: string }>("/v1/auth/login", { method: "POST", json: { email } });
+          : await api<{ token: string }>("/v1/auth/login", { method: "POST", json: { login: email, password: password || undefined } });
       setToken(res.token);
       router.push(role === "artist" && mode === "signup" ? "/studio" : next.startsWith("/") ? next : "/");
     } catch (err) {
@@ -39,8 +41,15 @@ function SignIn() {
             <button type="button" className="tab" aria-selected={role === "artist"} onClick={() => setRole("artist")}>I&apos;m an artist</button>
           </div>
         )}
-        <label htmlFor="email">Email</label>
-        <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <label htmlFor="email">{mode === "signup" ? "Email" : "Email or username"}</label>
+        <input id="email" type={mode === "signup" ? "email" : "text"} required autoComplete={mode === "signup" ? "email" : "username"} value={email} onChange={(e) => setEmail(e.target.value)} />
+        {mode === "signin" && (
+          <>
+            <label htmlFor="password">Password</label>
+            <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <p className="muted">Had an account on the old Livebic? Use the same username and password.</p>
+          </>
+        )}
         {mode === "signup" && (
           <>
             <label htmlFor="name">{role === "artist" ? "Artist name" : "Your name"}</label>

@@ -16,6 +16,7 @@ export interface ReleaseView {
   artist: { id: string; handle: string; displayName: string } | null;
   authorship: { sha256: string; registryRef: string } | null;
   canListen: boolean;
+  coverUrl: string | null;
 }
 
 export interface FeedResponse {
