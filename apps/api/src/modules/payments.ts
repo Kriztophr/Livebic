@@ -20,9 +20,10 @@ const DAY_MS = 86_400_000;
 const MIN_PAYOUT_KOBO = 100_000;
 
 const orderSchema = z.object({
-  kind: z.enum(["tip", "unlock", "membership", "drop"]),
+  kind: z.enum(["tip", "unlock", "membership", "drop", "fund"]),
   artistId: z.string(),
   releaseId: z.string().nullable().default(null),
+  videoProjectId: z.string().optional(),
   amountKobo: z.number().int().optional(),
   currency: z.enum(["NGN", "USD", "GBP"]).default("NGN"),
 });
@@ -40,6 +41,7 @@ export function publicOrder(o: Order) {
     status: o.status,
     editionNumber: o.editionNumber,
     membershipEndsAt: o.membershipEndsAt,
+    videoProjectId: o.videoProjectId ?? null,
     createdAt: o.createdAt,
     paidAt: o.paidAt,
     receipt: o.receipt ? { hash: o.receipt.hash, signature: o.receipt.signature, registryRef: o.receipt.registryTx, ...o.receipt.receipt } : null,
@@ -134,7 +136,9 @@ export async function applyPaymentResult(ctx: AppContext, reference: string, sta
           ? `You're a member of ${artist.displayName} until ${order.membershipEndsAt?.toDateString()}`
           : order.kind === "unlock"
             ? `You unlocked "${release?.title}"`
-            : `You tipped ${artist.displayName}`;
+            : order.kind === "fund"
+              ? `You backed the video for "${store.videoProjects.get(order.videoProjectId ?? "")?.id ? release?.title ?? artist.displayName : artist.displayName}". You'll be credited when it's out`
+              : `You tipped ${artist.displayName}`;
     await ctx.partners.mailer.send({
       to: fan.email,
       subject: `Receipt: ${formatNaira(order.amountKobo)} to ${artist.displayName}`,
@@ -158,7 +162,20 @@ export async function registerPayments(app: FastifyInstance, ctx: AppContext) {
       if (body.releaseId && (!release || release.artistId !== artist.id || release.status !== "published")) throw notFound("Release");
 
       let amountKobo: number;
+      let videoProjectId: string | undefined;
       switch (body.kind) {
+        case "fund": {
+          const project = body.videoProjectId ? store.videoProjects.get(body.videoProjectId) : undefined;
+          if (!project || project.artistId !== artist.id || !project.funding || project.funding.closedAt !== null) {
+            throw badRequest("no_campaign", "This video isn't raising funds right now");
+          }
+          if (body.amountKobo === undefined || !TIP_AMOUNTS_KOBO.includes(body.amountKobo)) {
+            throw badRequest("invalid_amount", `Back a video with ${TIP_AMOUNTS_KOBO.map(formatNaira).join(", ")}`);
+          }
+          amountKobo = body.amountKobo;
+          videoProjectId = project.id;
+          break;
+        }
         case "tip":
           if (body.amountKobo === undefined || !TIP_AMOUNTS_KOBO.includes(body.amountKobo)) {
             throw badRequest("invalid_tip", `Tips are ${TIP_AMOUNTS_KOBO.map(formatNaira).join(", ")}`);
@@ -211,6 +228,7 @@ export async function registerPayments(app: FastifyInstance, ctx: AppContext) {
         editionNumber: null,
         receipt: null,
         membershipEndsAt: null,
+        ...(videoProjectId ? { videoProjectId } : {}),
       };
       store.orders.set(order.id, order);
       return { statusCode: 201, body: { order: publicOrder(order), checkoutUrl: checkout.checkoutUrl } };

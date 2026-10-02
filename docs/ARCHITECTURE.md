@@ -61,6 +61,13 @@ loads at startup (`LIVEBIC_IMPORT_BUNDLE`). Migrated users sign in with their ol
 Old `/track/<id>` and `/<username>` links redirect to the new pages. Legacy balances are reported for settlement,
 not imported. Runbook: [MIGRATION.md](MIGRATION.md).
 
+## Video studio
+
+AI music video direction for artists who cannot afford a shoot: beat-cut shot plans, an AI-written
+treatment, cheap drafts then picked finals, fan funding through the normal support flow, consent and
+labelling guardrails. Generation sits behind `VideoGenerator` (sandbox now, Higgsfield later).
+Details and open work: [VIDEO_STUDIO.md](VIDEO_STUDIO.md).
+
 ## Still to do before launch
 
 Blocked on the spec's open decisions:

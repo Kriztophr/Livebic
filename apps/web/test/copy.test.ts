@@ -5,7 +5,7 @@ import { findForbiddenTerms } from "@livebic/core/copy";
 
 /** Fan-facing screens must not use crypto vocabulary (principle 1). Studio is creator-facing and exempt. */
 const FAN_DIRS = ["app", "components"];
-const CREATOR_ONLY = [join("app", "studio")];
+const CREATOR_ONLY = [join("app", "studio")]; // includes studio/video
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {

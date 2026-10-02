@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { FastifyRequest } from "fastify";
-import { RulesRegistry, generateReceiptKeys, type FeedName, type FeedSnapshot } from "@livebic/core";
+import { RulesRegistry, generateReceiptKeys, templateDirector, type Director, type FeedName, type FeedSnapshot } from "@livebic/core";
 import type { Config } from "./config";
 import { badRequest, forbidden, HttpError, unauthorized } from "./errors";
 import type { Partners } from "./partners/types";
@@ -31,14 +31,16 @@ export interface AppContext {
   rules: RulesRegistry;
   cache: FeedCache;
   receiptKeys: { privateKeyPem: string; publicKeyPem: string };
+  director: Director;
   now: () => Date;
 }
 
-export function createContext(input: Omit<AppContext, "rules" | "cache" | "receiptKeys" | "now"> & Partial<AppContext>): AppContext {
+export function createContext(input: Omit<AppContext, "rules" | "cache" | "receiptKeys" | "now" | "director"> & Partial<AppContext>): AppContext {
   return {
     rules: new RulesRegistry(),
     cache: memoryFeedCache(),
     receiptKeys: generateReceiptKeys(),
+    director: templateDirector,
     now: () => new Date(),
     ...input,
   };

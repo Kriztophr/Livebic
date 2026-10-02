@@ -17,7 +17,7 @@ interface Order {
   receipt: null | { receiptId: string; issuedAt: string };
 }
 
-const KIND = { tip: "Tip", unlock: "Unlock", membership: "Membership", drop: "Own a piece" } as Record<string, string>;
+const KIND = { tip: "Tip", unlock: "Unlock", membership: "Membership", drop: "Own a piece", fund: "Backed a video" } as Record<string, string>;
 
 export default function OrderPage() {
   const { id } = useParams<{ id: string }>();

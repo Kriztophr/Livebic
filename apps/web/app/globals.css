@@ -58,3 +58,5 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 audio { width: 100%; margin-top: 8px; }
 .table-wrap { overflow-x: auto; }
 .cover { border-radius: 8px; object-fit: cover; background: var(--line); flex: none; }
+.meter { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; margin: 8px 0 4px; }
+.meter span { display: block; height: 100%; background: var(--accent); }

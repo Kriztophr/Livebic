@@ -12,6 +12,7 @@ export function Nav() {
       <Link href="/how-ranking-works">How ranking works</Link>
       <span className="spacer" />
       {me?.artist && <Link href="/studio">Studio</Link>}
+      {me?.artist && <Link href="/studio/video">Video</Link>}
       {me ? (
         <button className="linkish" onClick={() => setToken(null)}>Sign out</button>
       ) : (

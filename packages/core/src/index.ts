@@ -7,3 +7,4 @@ export * from "./copy";
 export * from "./ranking/types";
 export * from "./ranking/rules";
 export * from "./ranking/engine";
+export * from "./video";

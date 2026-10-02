@@ -2,10 +2,10 @@ export type FeedName = "following" | "rising" | "most-supported" | "newest";
 export const FEED_NAMES: readonly FeedName[] = ["following", "rising", "most-supported", "newest"];
 
 export type FreeEventType = "view" | "play" | "like" | "follow";
-export type PaidEventType = "tip" | "unlock" | "membership" | "drop";
+export type PaidEventType = "tip" | "unlock" | "membership" | "drop" | "fund";
 export type EngagementType = FreeEventType | PaidEventType;
 
-export const PAID_EVENT_TYPES: readonly PaidEventType[] = ["tip", "unlock", "membership", "drop"];
+export const PAID_EVENT_TYPES: readonly PaidEventType[] = ["tip", "unlock", "membership", "drop", "fund"];
 
 export function isPaid(type: EngagementType): type is PaidEventType {
   return (PAID_EVENT_TYPES as readonly string[]).includes(type);

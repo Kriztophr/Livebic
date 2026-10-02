@@ -1,4 +1,4 @@
-import { naira } from "@livebic/core";
+import { DEFAULT_VIDEO_PRICING, naira, type VideoPricing } from "@livebic/core";
 
 export interface Config {
   port: number;
@@ -14,6 +14,9 @@ export interface Config {
   receiptPrivateKeyPem?: string;
   adminEmails: string[];
   rankingIntervalMs: number;
+  videoPricing: VideoPricing;
+  /** Use Claude to write treatments; otherwise the deterministic template director. */
+  claudeDirector: boolean;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -31,5 +34,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     receiptPrivateKeyPem: env.RECEIPT_PRIVATE_KEY_PEM,
     adminEmails: (env.ADMIN_EMAILS ?? "admin@livebic.test").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
     rankingIntervalMs: 15 * 60 * 1000,
+    videoPricing: DEFAULT_VIDEO_PRICING,
+    claudeDirector: Boolean(env.ANTHROPIC_API_KEY) && env.LIVEBIC_CLAUDE_DIRECTOR !== "false",
   };
 }

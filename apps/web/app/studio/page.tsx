@@ -49,6 +49,8 @@ export default function Studio() {
 
       {artist.verification !== "verified" && <Verification status={artist.verification} onDone={reload} />}
 
+      <p><Link href="/studio/video" className="btn secondary">Video studio →</Link></p>
+
       <h2>Earnings</h2>
       <Earnings balanceKobo={me.balanceKobo} payout={artist.payout} onDone={(m) => { setMsg(m); reload(); }} />
 

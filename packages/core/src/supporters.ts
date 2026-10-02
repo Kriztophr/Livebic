@@ -1,6 +1,6 @@
 import type { Kobo } from "./money";
 
-export type SupportKind = "tip" | "unlock" | "membership" | "drop";
+export type SupportKind = "tip" | "unlock" | "membership" | "drop" | "fund";
 
 /** Tier shown in the supporter list, highest commitment wins. */
 export type SupporterTier = "owner" | "member" | "supporter";

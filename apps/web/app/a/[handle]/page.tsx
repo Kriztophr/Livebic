@@ -22,6 +22,7 @@ interface Profile {
   };
   releases: { id: string }[];
   tipAmountsKobo: number[];
+  funding: { projectId: string; releaseId: string; title: string; format: "teaser" | "full"; goalKobo: number; raisedKobo: number; backers: number }[];
   viewer: { following: boolean; supporter: boolean } | null;
 }
 
@@ -44,7 +45,7 @@ export default function ArtistPage() {
     load().catch((e) => setError((e as Error).message));
   }, [handle]);
 
-  async function support(payload: { kind: string; releaseId?: string; amountKobo?: number }) {
+  async function support(payload: { kind: string; releaseId?: string; amountKobo?: number; videoProjectId?: string }) {
     if (!getToken()) return router.push(`/signin?next=/a/${handle}`);
     setBusy(true);
     setError(null);
@@ -113,6 +114,25 @@ export default function ArtistPage() {
         </div>
         {error && <p className="error">{error}</p>}
       </div>
+
+      {profile.funding.map((f) => {
+        const pct = Math.min(100, Math.round((f.raisedKobo / f.goalKobo) * 100));
+        return (
+          <div key={f.projectId} className="card">
+            <strong>Fund the video for &ldquo;{f.title}&rdquo;</strong>
+            <div className="muted">{artist.displayName} can&apos;t shoot this one alone. {f.backers} backer{f.backers === 1 ? "" : "s"} so far; everyone who chips in is credited in the video.</div>
+            <div className="meter" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${pct}%` }} /></div>
+            <div className="muted">{formatNaira(f.raisedKobo)} of {formatNaira(f.goalKobo)}</div>
+            <div className="row" style={{ marginTop: 8 }}>
+              {profile.tipAmountsKobo.slice(0, 3).map((amt) => (
+                <button key={amt} className="btn" disabled={busy} onClick={() => support({ kind: "fund", videoProjectId: f.projectId, amountKobo: amt })}>
+                  Back it · {formatNaira(amt)}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
 
       <h2>Releases</h2>
       {releases.map((r) => (

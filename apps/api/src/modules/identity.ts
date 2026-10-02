@@ -7,6 +7,7 @@ import { currentUser, requireUser, type AppContext } from "../context";
 import { badRequest, conflict, HttpError, notFound } from "../errors";
 import { newId } from "../ids";
 import type { Artist, User } from "../store";
+import { publicFunding } from "./video";
 
 const handleSchema = z
   .string()
@@ -213,6 +214,7 @@ export async function registerIdentity(app: FastifyInstance, ctx: AppContext) {
       artist: publicArtist(ctx, artist),
       releases,
       tipAmountsKobo: TIP_AMOUNTS_KOBO,
+      funding: publicFunding(ctx, artist.id),
       viewer: viewer
         ? { following: store.follows.get(viewer.id)?.has(artist.id) ?? false, supporter: store.isSupporter(viewer.id, artist.id) }
         : null,

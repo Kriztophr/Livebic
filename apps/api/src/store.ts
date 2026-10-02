@@ -1,4 +1,4 @@
-import type { Currency, EngagementEvent, ReviewFlag, SignedReceipt, SplitShare, SupportKind } from "@livebic/core";
+import type { Aspect, CastMode, ConsentTerms, Currency, EngagementEvent, PlannedShot, ReviewFlag, SignedReceipt, SongAnalysis, SplitShare, SupportKind, Tier, Treatment, VideoFormat } from "@livebic/core";
 
 /**
  * In-memory store used in sandbox mode and tests. Shapes mirror db/schema.sql, which is the
@@ -85,13 +85,71 @@ export interface Order {
   membershipEndsAt: Date | null;
   /** Set on purchases imported from the legacy app; already settled there, so never credited to the ledger. */
   legacy?: { source: "deepsound"; currency: string; amount: number };
+  /** Set on "fund" orders: the video project the fan is backing. */
+  videoProjectId?: string;
+}
+
+export interface Take {
+  id: string;
+  shotId: string;
+  seed: number;
+  quality: "draft" | "final";
+  objectKey: string;
+  thumbnailKey: string | null;
+  jobId: string;
+}
+
+export interface VideoExport {
+  id: string;
+  aspect: Aspect;
+  objectKey: string;
+  contentType: string;
+  label: string;
+  shareUrl: string;
+  createdAt: Date;
+}
+
+export type VideoProjectStatus = "treatment" | "casting" | "drafting" | "picking" | "rendering" | "done" | "cancelled";
+
+export interface LikenessConsent {
+  id: string;
+  terms: ConsentTerms;
+  hash: string;
+  registryTx: string;
+  photoKeys: string[];
+  revokedAt: Date | null;
+}
+
+export interface VideoProject {
+  id: string;
+  artistId: string;
+  releaseId: string;
+  format: VideoFormat;
+  aspect: Aspect;
+  castMode: CastMode;
+  status: VideoProjectStatus;
+  analysis: SongAnalysis;
+  shots: PlannedShot[];
+  treatment: Treatment;
+  notes: string[];
+  /** Shots whose direction the artist wrote by hand; revisions never overwrite them. */
+  lockedShots: string[];
+  consentId: string | null;
+  takes: Take[];
+  picks: Record<string, string>;
+  quote: { draftKobo: number; finalKobo: number; totalKobo: number };
+  funding: { goalKobo: number; openedAt: Date; closedAt: Date | null } | null;
+  charged: { tier: Tier; fromBalanceKobo: number; fromFundingKobo: number } | null;
+  exports: VideoExport[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface LedgerEntry {
   id: string;
   userId: string;
   amountKobo: number;
-  reason: "sale" | "platform_fee" | "payout" | "payout_reversal";
+  reason: "sale" | "platform_fee" | "payout" | "payout_reversal" | "video";
   orderId: string | null;
   payoutId: string | null;
   at: Date;
@@ -137,6 +195,12 @@ export class MemoryStore {
   reports = new Map<string, Report>();
   flags: (ReviewFlag & { id: string; raisedAt: Date; status: "open" | "cleared" })[] = [];
   idempotency = new Map<string, IdempotencyRecord>();
+  videoProjects = new Map<string, VideoProject>();
+  consents = new Map<string, LikenessConsent>();
+
+  fundingRaised(projectId: string): number {
+    return this.paidOrders((o) => o.kind === "fund" && o.videoProjectId === projectId).reduce((s, o) => s + o.amountKobo, 0);
+  }
 
   userByLogin(identifier: string): User | undefined {
     const id = identifier.trim().toLowerCase();

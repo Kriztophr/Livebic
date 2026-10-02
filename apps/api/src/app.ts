@@ -9,6 +9,7 @@ import { registerIdentity } from "./modules/identity";
 import { registerPayments } from "./modules/payments";
 import { registerRanking } from "./modules/ranking";
 import { registerSupporters } from "./modules/supporters";
+import { registerVideo } from "./modules/video";
 
 /**
  * Modular monolith (spec: Core services): Identity, Content, Payments, Ranking and Export
@@ -36,6 +37,7 @@ export async function buildApp(ctx: AppContext, opts: { logger?: boolean } = {})
   await registerPayments(app, ctx);
   await registerRanking(app, ctx);
   await registerSupporters(app, ctx);
+  await registerVideo(app, ctx);
   await registerAdmin(app, ctx);
   return app;
 }

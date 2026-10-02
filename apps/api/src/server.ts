@@ -7,6 +7,7 @@ import { seed } from "./seed";
 import { loadBundle, readBundle } from "./migrate/bundle";
 import { join } from "node:path";
 import { MemoryStore } from "./store";
+import { claudeDirector } from "./partners/claude-director";
 
 const config = loadConfig();
 if (!config.sandbox) {
@@ -17,7 +18,9 @@ const ctx = createContext({
   config,
   store: new MemoryStore(),
   partners: sandboxPartners({ publicApiUrl: config.publicApiUrl, webhookSecret: config.processorWebhookSecret }),
+  ...(config.claudeDirector ? { director: claudeDirector() } : {}),
 });
+console.log(`Video treatments written by ${config.claudeDirector ? "Claude" : "the template director (set ANTHROPIC_API_KEY to use Claude)"}`);
 const bundleDir = process.env.LIVEBIC_IMPORT_BUNDLE;
 if (bundleDir) {
   const loaded = await loadBundle(ctx, await readBundle(bundleDir), join(bundleDir, "media"));

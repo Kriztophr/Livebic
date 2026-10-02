@@ -17,6 +17,7 @@ users, artists, songs and history into the new build. See [docs/MIGRATION.md](do
 | `apps/web` | Next.js PWA: feeds with "Why this?", artist pages, checkout, receipts, ranking rules page, artist Studio |
 | `apps/api/db/schema.sql` | Postgres schema (source of truth for production) |
 | `apps/api/src/migrate` | One-off DeepSound (MySQL) importer and the bundle loader |
+| `packages/core/src/video`, `apps/api/src/modules/video.ts` | AI video studio: beat-cut shot plans, treatments, drafts, fan funding. See [docs/VIDEO_STUDIO.md](docs/VIDEO_STUDIO.md) |
 
 ## Run it locally
 
@@ -28,6 +29,7 @@ npm run dev:api   # http://localhost:4000, sandbox mode with seeded Lagos artist
 npm run dev:web   # http://localhost:3000
 ```
 
+Set `ANTHROPIC_API_KEY` to have Claude write video treatments; without it a template director is used.
 Sandbox mode uses mock partners: checkout opens a local "Pay / Decline" page and no money moves.
 Seed accounts sign in by email with no password (sandbox only): `tobilagos@livebic.test` (artist),
 `fan1@livebic.test` (fan), `admin@livebic.test` (admin).
