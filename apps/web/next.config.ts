@@ -14,7 +14,11 @@ const config: NextConfig = {
     ];
   },
   async rewrites() {
-    return [{ source: "/@:handle", destination: "/a/:handle" }];
+    return [
+      { source: "/@:handle", destination: "/a/:handle" },
+      // Single-port hosts: the web app forwards API calls to the API process next to it.
+      { source: "/api-proxy/:path*", destination: `${process.env.API_INTERNAL_URL ?? "http://localhost:4000"}/:path*` },
+    ];
   },
 };
 

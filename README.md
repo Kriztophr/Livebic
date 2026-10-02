@@ -34,6 +34,13 @@ Sandbox mode uses mock partners: checkout opens a local "Pay / Decline" page and
 Seed accounts sign in by email with no password (sandbox only): `tobilagos@livebic.test` (artist),
 `fan1@livebic.test` (fan), `admin@livebic.test` (admin).
 
+## Deploy a preview
+
+`Dockerfile` builds one image that runs both apps (`scripts/start.mjs`), with the API reachable through the
+web app at `/api-proxy` so a single-port host works. Build with
+`--build-arg NEXT_PUBLIC_API_URL=https://<host>/api-proxy`. `.github/workflows/deploy-preview.yml` deploys it
+to an Azure Web App once the secret and variable named in that file are set.
+
 ## Checks
 
 ```sh
